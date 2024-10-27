@@ -110,26 +110,56 @@ def create_competitor_comparison(analyzers, stock_symbol, competitors):
 
 def create_volume_sentiment_correlation(df):
     """Create scatter plot of post volume vs sentiment"""
-    df['date'] = pd.to_datetime(df['created_utc']).dt.date
-    daily_data = df.groupby('date').agg({
-        'id': 'count',
-        'text_sentiment': lambda x: (x == 'positive').mean() * 100,
-        'score': 'mean'
-    }).reset_index()
-    
-    fig = px.scatter(daily_data,
-        x='id',
-        y='text_sentiment',
-        size='score',
-        title='Post Volume vs Sentiment Correlation',
-        labels={
-            'id': 'Number of Posts',
-            'text_sentiment': 'Positive Sentiment %',
-            'score': 'Average Score'
-        },
-        trendline="ols"
-    )
-    return fig
+    try:
+        df['date'] = pd.to_datetime(df['created_utc']).dt.date
+        daily_data = df.groupby('date').agg({
+            'id': 'count',
+            'text_sentiment': lambda x: (x == 'positive').mean() * 100,
+            'score': 'mean'
+        }).reset_index()
+        
+        # Create scatter plot without trendline if statsmodels is not available
+        fig = px.scatter(
+            daily_data,
+            x='id',
+            y='text_sentiment',
+            size='score',
+            title='Post Volume vs Sentiment Correlation',
+            labels={
+                'id': 'Number of Posts',
+                'text_sentiment': 'Positive Sentiment %',
+                'score': 'Average Score'
+            }
+        )
+        
+        try:
+            import statsmodels.api as sm
+            # Add trendline if statsmodels is available
+            X = daily_data['id']
+            y = daily_data['text_sentiment']
+            X = sm.add_constant(X)
+            model = sm.OLS(y, X).fit()
+            daily_data['trendline'] = model.predict(X)
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=daily_data['id'],
+                    y=daily_data['trendline'],
+                    mode='lines',
+                    name='Trend',
+                    line=dict(color='red', dash='dash')
+                )
+            )
+        except ImportError:
+            pass  # Skip trendline if statsmodels is not available
+        
+        return fig
+    except Exception as e:
+        print(f"Error creating volume-sentiment correlation: {str(e)}")
+        # Return empty figure in case of error
+        return go.Figure().update_layout(
+            title='Volume vs Sentiment Correlation (Error occurred)'
+        )
 
 def create_sentiment_heatmap(df):
     """Create hourly sentiment heatmap"""
