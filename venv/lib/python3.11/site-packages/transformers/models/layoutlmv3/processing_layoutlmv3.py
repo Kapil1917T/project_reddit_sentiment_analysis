@@ -38,12 +38,11 @@ class LayoutLMv3Processor(ProcessorMixin):
     into token-level `labels` for token classification tasks (such as FUNSD, CORD).
 
     Args:
-        image_processor (`LayoutLMv3ImageProcessor`, *optional*):
+        image_processor (`LayoutLMv3ImageProcessor`):
             An instance of [`LayoutLMv3ImageProcessor`]. The image processor is a required input.
-        tokenizer (`LayoutLMv3Tokenizer` or `LayoutLMv3TokenizerFast`, *optional*):
+        tokenizer (`LayoutLMv3Tokenizer` or `LayoutLMv3TokenizerFast`):
             An instance of [`LayoutLMv3Tokenizer`] or [`LayoutLMv3TokenizerFast`]. The tokenizer is a required input.
     """
-
     attributes = ["image_processor", "tokenizer"]
     image_processor_class = "LayoutLMv3ImageProcessor"
     tokenizer_class = ("LayoutLMv3Tokenizer", "LayoutLMv3TokenizerFast")

@@ -30,12 +30,11 @@ class XCLIPProcessor(ProcessorMixin):
     [`~XCLIPProcessor.__call__`] and [`~XCLIPProcessor.decode`] for more information.
 
     Args:
-        image_processor ([`VideoMAEImageProcessor`], *optional*):
+        image_processor ([`VideoMAEImageProcessor`]):
             The image processor is a required input.
-        tokenizer ([`CLIPTokenizerFast`], *optional*):
+        tokenizer ([`CLIPTokenizerFast`]):
             The tokenizer is a required input.
     """
-
     attributes = ["image_processor", "tokenizer"]
     image_processor_class = "VideoMAEImageProcessor"
     tokenizer_class = ("CLIPTokenizer", "CLIPTokenizerFast")

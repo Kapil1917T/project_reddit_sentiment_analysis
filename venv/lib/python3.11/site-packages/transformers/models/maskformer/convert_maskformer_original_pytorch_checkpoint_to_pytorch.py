@@ -641,8 +641,7 @@ if __name__ == "__main__":
         type=Path,
         help=(
             "A directory containing the model's checkpoints. The directory has to have the following structure:"
-            " <DIR_NAME>/<DATASET_NAME>/<CONFIG_NAME>.pkl\n"
-            "Given the files are in the pickle format, please be wary of passing it files you trust."
+            " <DIR_NAME>/<DATASET_NAME>/<CONFIG_NAME>.pkl"
         ),
     )
     parser.add_argument(
