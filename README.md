@@ -166,9 +166,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Contact
 
-Your Name - [Your Email]
+Your Name - kmtare@syr.edu
 
-Project Link: [https://github.com/yourusername/reddit-sentiment-analysis](https://github.com/yourusername/reddit-sentiment-analysis)
+Project Link: [https://github.com/Kapil1917T/reddit-sentiment-analysis](https://github.com/Kapil1917T/reddit-sentiment-analysis)
 
 ## 🚧 Future Improvements
 
