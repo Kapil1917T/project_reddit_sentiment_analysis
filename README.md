@@ -2,6 +2,8 @@
 
 A real-time dashboard that analyzes sentiment of stock-related discussions on Reddit using Natural Language Processing and Machine Learning.
 
+Dashboard Link - http://192.168.1.104:8504/
+
 ## 🌟 Features
 
 - **Multi-Source Data Collection**
