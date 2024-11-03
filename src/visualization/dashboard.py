@@ -30,14 +30,19 @@ def load_models():
         'analyzer': SentimentAnalyzer()
     }
 
-def create_sentiment_plot(df, column_prefix='text'):
+def create_sentiment_plot(df):
     """Create sentiment distribution pie chart"""
-    sentiment_counts = df[f'{column_prefix}_sentiment'].value_counts()
+    if df.empty:
+        return go.Figure().update_layout(
+            title="No data available for sentiment distribution"
+        )
+    
+    sentiment_counts = df['text_sentiment'].value_counts()
     
     fig = px.pie(
         values=sentiment_counts.values,
         names=sentiment_counts.index,
-        title=f'Sentiment Distribution',
+        title='Sentiment Distribution',
         color_discrete_map={
             'positive': '#2ECC71',
             'neutral': '#95A5A6',
@@ -46,13 +51,18 @@ def create_sentiment_plot(df, column_prefix='text'):
     )
     return fig
 
-def create_confidence_histogram(df, column_prefix='text'):
+def create_confidence_histogram(df):
     """Create confidence score histogram"""
+    if df.empty:
+        return go.Figure().update_layout(
+            title="No data available for confidence distribution"
+        )
+    
     fig = px.histogram(
         df,
-        x=f'{column_prefix}_confidence',
+        x='text_confidence',
         title='Sentiment Confidence Distribution',
-        color=f'{column_prefix}_sentiment',
+        color='text_sentiment',
         color_discrete_map={
             'positive': '#2ECC71',
             'neutral': '#95A5A6',
@@ -237,120 +247,156 @@ def main():
             max_value=1000,
             value=10
         )
+
+        # Add cache clear button
+        if st.sidebar.button("Clear Cache"):
+            st.cache_resource.clear()
+            st.success("Cache cleared successfully!")
         
         if st.sidebar.button("🔄 Run Analysis"):
             if stock_symbol and subreddits:
-                # Fetch and analyze data
-                with st.spinner(f"Fetching and analyzing posts about {stock_symbol}..."):
-                    # Get posts
-                    df = models['scraper'].fetch_stock_related_posts(
-                        stock_symbol,
-                        subreddits=subreddits,
-                        days=days_back
-                    )
-                    
-                    if df.empty:
-                        st.warning(f"No posts found for {stock_symbol}")
-                        return
-                    
-                    # Filter by score
-                    df = df[df['score'] >= min_score]
-                    
-                    # Process text
-                    df = models['preprocessor'].process_dataframe(df)
-                    
-                    # Analyze sentiment
-                    df = models['analyzer'].analyze_dataframe(df)
-                    
-                    # Display results
-                    st.header(f"📈 Analysis Results for ${stock_symbol}")
-                    
-                    # Summary metrics
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        st.metric("Total Posts", len(df))
-                    with col2:
-                        positive_pct = (df['text_sentiment'] == 'positive').mean() * 100
-                        st.metric("Positive Sentiment", f"{positive_pct:.1f}%")
-                    with col3:
-                        avg_score = df['score'].mean()
-                        st.metric("Average Score", f"{avg_score:.1f}")
-                    with col4:
-                        avg_comments = df['num_comments'].mean()
-                        st.metric("Average Comments", f"{avg_comments:.1f}")
-                    
-                    # Original visualizations
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        st.plotly_chart(
-                            create_sentiment_plot(df),
-                            use_container_width=True
+                try:
+                    with st.spinner(f"Searching for posts about {stock_symbol}..."):
+                        # Get posts
+                        df = models['scraper'].fetch_stock_related_posts(
+                            stock_symbol,
+                            subreddits=subreddits,
+                            days=days_back
                         )
-                    
-                    with col2:
-                        st.plotly_chart(
-                            create_confidence_histogram(df),
-                            use_container_width=True
-                        )
-                    
-                    # New comparative visualizations
-                    col3, col4 = st.columns(2)
-                    
-                    with col3:
-                        st.plotly_chart(
-                            create_volume_sentiment_correlation(df),
-                            use_container_width=True
-                        )
-                    
-                    with col4:
-                        st.plotly_chart(
-                            create_competitor_comparison(models, stock_symbol, competitors),
-                            use_container_width=True
-                        )
-                    
-                    # Sentiment heatmap (full width)
-                    st.plotly_chart(
-                        create_sentiment_heatmap(df),
-                        use_container_width=True
-                    )
-                    
-                    # Most discussed posts
-                    st.header("📝 Most Discussed Posts")
-                    
-                    # Positive posts
-                    st.subheader("Most Positive Posts")
-                    positive_posts = df[df['text_sentiment'] == 'positive'].nlargest(3, 'score')
-                    for _, post in positive_posts.iterrows():
-                        with st.expander(f"💚 {post['title']}", expanded=False):
-                            st.write(f"**Subreddit:** r/{post['subreddit']}")
-                            st.write(f"**Score:** {post['score']}")
-                            st.write(f"**Confidence:** {post['text_confidence']:.2f}")
-                            st.write(f"**Text:** {post['text']}")
-                    
-                    # Negative posts
-                    st.subheader("Most Negative Posts")
-                    negative_posts = df[df['text_sentiment'] == 'negative'].nlargest(3, 'score')
-                    for _, post in negative_posts.iterrows():
-                        with st.expander(f"❌ {post['title']}", expanded=False):
-                            st.write(f"**Subreddit:** r/{post['subreddit']}")
-                            st.write(f"**Score:** {post['score']}")
-                            st.write(f"**Confidence:** {post['text_confidence']:.2f}")
-                            st.write(f"**Text:** {post['text']}")
-                    
-                    # Raw data
-                    if st.checkbox("Show Raw Data"):
-                        st.dataframe(df)
                         
-                        # Download button
-                        csv = df.to_csv(index=False)
-                        st.download_button(
-                            "Download Data as CSV",
-                            csv,
-                            f"reddit_sentiment_{stock_symbol}_{datetime.now().strftime('%Y%m%d')}.csv",
-                            "text/csv",
-                            key='download-csv'
-                        )
+                        if df.empty:
+                            st.warning(f"""
+                                No posts found for {stock_symbol} in the selected subreddits.
+                                
+                                Try:
+                                - Different subreddits
+                                - Longer time range (current: {days_back} days)
+                                - Lower minimum score (current: {min_score})
+                                - Different stock symbol
+                            """)
+                            # Show retry options
+                            if st.button("Try Different Time Range"):
+                                st.session_state.days_back = min(days_back + 7, 30)
+                                st.experimental_rerun()
+                            return
+                        
+                        # Filter by score
+                        df = df[df['score'] >= min_score]
+                        
+                        if df.empty:
+                            st.warning(f"""
+                                Found posts about {stock_symbol}, but none meet the minimum score requirement of {min_score}.
+                                Try lowering the minimum score.
+                            """)
+                            if st.button("Lower Minimum Score"):
+                                st.session_state.min_score = max(min_score - 10, 1)
+                                st.experimental_rerun()
+                            return
+                        
+                        # Process and analyze
+                        with st.spinner("Processing text..."):
+                            df = models['preprocessor'].process_dataframe(df)
+                        
+                        with st.spinner("Analyzing sentiment..."):
+                            df = models['analyzer'].analyze_dataframe(df)
+                        
+                        # Display results
+                        st.header(f"📈 Analysis Results for ${stock_symbol}")
+                        
+                        # Summary metrics with proper handling
+                        col1, col2, col3, col4 = st.columns(4)
+                        with col1:
+                            st.metric("Total Posts", value=len(df) if not df.empty else 0)
+                        with col2:
+                            positive_pct = (df['text_sentiment'] == 'positive').mean() * 100 if not df.empty else 0
+                            st.metric("Positive Sentiment", value=f"{positive_pct:.1f}%")
+                        with col3:
+                            avg_score = df['score'].mean() if not df.empty else 0
+                            st.metric("Average Score", value=f"{avg_score:.1f}")
+                        with col4:
+                            avg_comments = df['num_comments'].mean() if not df.empty else 0
+                            st.metric("Average Comments", value=f"{avg_comments:.1f}")
+                        
+                        # Only show visualizations if we have data
+                        if not df.empty:
+                            # Original visualizations
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.plotly_chart(
+                                    create_sentiment_plot(df),
+                                    use_container_width=True
+                                )
+                            with col2:
+                                st.plotly_chart(
+                                    create_confidence_histogram(df),
+                                    use_container_width=True
+                                )
+                            
+                            # Comparative visualizations
+                            col3, col4 = st.columns(2)
+                            with col3:
+                                st.plotly_chart(
+                                    create_volume_sentiment_correlation(df),
+                                    use_container_width=True
+                                )
+                            with col4:
+                                st.plotly_chart(
+                                    create_competitor_comparison(models, stock_symbol, competitors),
+                                    use_container_width=True
+                                )
+                            
+                            # Sentiment heatmap
+                            st.plotly_chart(
+                                create_sentiment_heatmap(df),
+                                use_container_width=True
+                            )
+                            
+                            # Show posts if available
+                            if len(df) > 0:
+                                # Most discussed posts
+                                st.header("📝 Most Discussed Posts")
+                                
+                                # Positive posts
+                                positive_posts = df[df['text_sentiment'] == 'positive'].nlargest(3, 'score')
+                                if not positive_posts.empty:
+                                    st.subheader("Most Positive Posts")
+                                    for _, post in positive_posts.iterrows():
+                                        with st.expander(f"💚 {post['title']}", expanded=False):
+                                            st.write(f"**Subreddit:** r/{post['subreddit']}")
+                                            st.write(f"**Score:** {post['score']}")
+                                            st.write(f"**Confidence:** {post['text_confidence']:.2f}")
+                                            st.write(f"**Text:** {post['text']}")
+                                
+                                # Negative posts
+                                negative_posts = df[df['text_sentiment'] == 'negative'].nlargest(3, 'score')
+                                if not negative_posts.empty:
+                                    st.subheader("Most Negative Posts")
+                                    for _, post in negative_posts.iterrows():
+                                        with st.expander(f"❌ {post['title']}", expanded=False):
+                                            st.write(f"**Subreddit:** r/{post['subreddit']}")
+                                            st.write(f"**Score:** {post['score']}")
+                                            st.write(f"**Confidence:** {post['text_confidence']:.2f}")
+                                            st.write(f"**Text:** {post['text']}")
+                            
+                            # Raw data option
+                            if st.checkbox("Show Raw Data"):
+                                st.dataframe(df)
+                                
+                                # Download button
+                                csv = df.to_csv(index=False)
+                                st.download_button(
+                                    "Download Data as CSV",
+                                    csv,
+                                    f"reddit_sentiment_{stock_symbol}_{datetime.now().strftime('%Y%m%d')}.csv",
+                                    "text/csv",
+                                    key='download-csv'
+                                )
+                        
+                except Exception as e:
+                    st.error(f"An error occurred: {str(e)}")
+                    if st.button("Clear Cache and Retry"):
+                        st.cache_resource.clear()
+                        st.experimental_rerun()
     
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
