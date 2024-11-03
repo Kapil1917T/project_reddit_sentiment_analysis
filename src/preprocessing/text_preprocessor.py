@@ -7,7 +7,7 @@ import pandas as pd
 
 # Explicitly download required NLTK data at the start
 print("Checking NLTK data...")
-nltk.download('punkt')
+nltk.download('punkt_tab')
 nltk.download('stopwords')
 nltk.download('wordnet')
 nltk.download('omw-1.4')
